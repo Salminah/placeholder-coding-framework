@@ -9,7 +9,7 @@ import org.junit.runner.RunWith;
         ,glue = {"stepDefinition"}
         ,plugin = {"pretty", "html:results/html/cucumber.html"}
         ,tags = "@Retrieve_User"
-        ,monochrome = true)
+        ,monochrome = false)
 
 public class UserBlogRunner {
 }

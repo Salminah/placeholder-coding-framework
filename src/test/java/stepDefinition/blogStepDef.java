@@ -1,5 +1,7 @@
 package stepDefinition;
 
+import dataHandler.DataHandler;
+import commonClass.Helper;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -8,52 +10,56 @@ import io.restassured.RestAssured;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import org.apache.poi.ss.usermodel.CreationHelper;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.testng.Assert;
+
 import java.io.*;
 import java.util.ArrayList;
-import java.util.regex.Pattern;
 import static io.restassured.RestAssured.given;
-import static org.testng.Assert.assertEquals;
-
+import static org.testng.Assert.assertTrue;
 
 public class blogStepDef {
 
+    DataHandler dataHandler = new DataHandler();
+    Helper helper = new Helper();
     RequestSpecification request;
     Response response;
+
     private ArrayList<Integer> getUserId;
     private JsonPath js;
     private ArrayList<Integer> postsIds;
+    private boolean emailValidationResults;
+    private String body;
+    private String username;
 
 
     @Given("^The base API request(.*)$")
     public void thebaseAPIrequest(String url){
-        RestAssured.baseURI= url;
+        RestAssured.baseURI= "https://jsonplaceholder.typicode.com";
     }
 
     @When("^I search the user with(.*)$")
     public void iSearchTheUserWithUsername(String username) {
+        this.username = username;
         String user ="/users?username="+username;
 
         response = given().get(user).then().extract().response();
-        System.out.println(response.getBody().asString());
+        body= response.getBody().asString();
+        System.out.println(body);
 
+        assertTrue(body.contains(username), "Username does not exist");
     }
 
     @And("The details of the username should be fetched$")
     public void theDetailsOfUsernameShouldBeFetched() {
 
-        String body= response.getBody().asString();
-        assertEquals(body.contains("email"),true,"Response does not contain email");
+        body= response.getBody().asString();
 
-        JsonPath js = response.jsonPath();
-        this.js = js;
-        ArrayList<Integer> getUserId = js.get("id");
-         this.getUserId = getUserId;
+        assertTrue(body.contains("email"), "Response does not contain email");
 
-        System.out.println("The UserId is: " + getUserId);
+        js = response.jsonPath();
+        getUserId = js.get("id");
+
+        assertTrue(body.contains(username), "Username is not the same");
 
     }
     @And("I search the posts written by the User$")
@@ -61,75 +67,62 @@ public class blogStepDef {
         int userIdIndex = getUserId.get(0);
 
         String postUserPath = "/users/"+userIdIndex+"/posts";
-
         response = given().get(postUserPath).then().extract().response();
 
-        JsonPath js = response.jsonPath();
-        ArrayList<Integer> postsIds =js.get("id");
+        js = response.jsonPath();
+        postsIds =js.get("id");
 
-        this.postsIds = postsIds;
+        assertTrue(response.getBody().asString().contains("tempora rem veritatis voluptas quo dolores vero"), "Post IDs is not the same");
 
     }
 
-    @And("For each post I fetch the comments$")
-    public void forEachPostIFetchTheComments() throws IOException {
+    @Then("For each post I fetch the comments and validate if the email is in proper format$")
+    public void forEachPostIFetchTheCommentsAndValidateIfTheEmailIsInProperFormat() {
 
-        for(Integer valueOfPostId : postsIds){
+        assertTrue(isEmailValid(),"The Email format is not correct");
 
-            String commentsPath = "/posts/" +valueOfPostId+ "/comments";
+    }
+
+    public boolean isEmailValid () {
+
+        for (Integer valueOfPostId : postsIds) {
+
+            String commentsPath = "/posts/" + valueOfPostId + "/comments";
             response = given().get(commentsPath).then().extract().response();
-            String commentsBody = response.getBody().asString();
-            JsonPath js = response.jsonPath();
-            ArrayList<String> emailFromComments =  js.get("email");
+            //String commentsBody = response.getBody().asString();
 
-            int rowNum = 0;
-            for(String validateEmail : emailFromComments){
+            js = response.jsonPath();
+            ArrayList<String> emailFromComments = js.get("email");
 
-                String emailValidationResults = validateEmailAddress(validateEmail);
-                System.out.println(validateEmail +" is " + emailValidationResults);
+            Assert.assertTrue(body.contains("email"), "The email does not exist");
 
+            for (String validateEmail : emailFromComments) {
 
-                XSSFWorkbook workbook = new XSSFWorkbook();
-                XSSFSheet sheet1 = workbook.createSheet("Sheet1");
-                CreationHelper createHelper = workbook.getCreationHelper();
+                emailValidationResults = helper.validateEmailAddress(validateEmail);
+                String mapEmailWithResults = validateEmail + " is " + emailValidationResults;
 
-                Row row = sheet1.createRow(rowNum);
+                System.out.println(mapEmailWithResults);
 
-                        row.createCell(0).setCellValue(validateEmail);
-                        row.createCell(1).setCellValue(emailValidationResults);
-
-                File file = new File("C:\\Users\\tumil\\IdeaProjects\\placeholder-coding-framework\\results\\EmailValidation.xls");
-                FileOutputStream fileOutput = new FileOutputStream(file);
-                workbook.write(fileOutput);
-                fileOutput.close();
-                workbook.close();
-
-
+//                    String dataPath = "C:\\Users\\tumil\\IdeaProjects\\placeholder-coding-framework\\results\\EmailValidation.xls";
+//                    int rowNum = 0;
+//                    LinkedHashSet<String> set = new LinkedHashSet<>();
+//                    set.add(mapEmailWithResults);
+//
+//                    Iterator<String> iterator = set.iterator();
+//                    while (iterator.hasNext()) {
+//                        dataHandler.writeDataToExcel(dataPath, iterator.next(), rowNum++, 0);
+//                    }
             }
-
         }
-
+        return emailValidationResults;
     }
 
-    @Then("Validate if the email in the comment section are in the proper format$")
-    public void validateIfTheEmailInTheCommentSectionAreInTheProperFormat()throws IOException {
+    @Then("I verify if (.*) exist$")
+    public void iVerifyIfTheUsernameExist(String username) {
 
+        body = response.getBody().asString();
+        assertTrue(body.contains(username), "User does not exist");
     }
-     public static String validateEmailAddress(String email){
-        if (email ==null || email.isEmpty()){
-            return "Invalid";
-        }
-         String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\." +
-                                         "[a-zA-Z0-9_+&*-]+)*@" +
-                                            "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-
-         Pattern pattern = Pattern.compile(emailRegex);
-         if (pattern.matcher(email).matches()){
-             return "Valid";
-         }else {
-             return "Invalid";
-         }
-     }
 }
 
 
