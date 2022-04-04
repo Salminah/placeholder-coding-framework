@@ -10,12 +10,14 @@ import io.restassured.RestAssured;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
-import org.testng.Assert;
+import org.junit.Assert;
+//import org.testng.Assert;
 
 import java.io.*;
 import java.util.ArrayList;
 import static io.restassured.RestAssured.given;
-import static org.testng.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+//import static org.testng.Assert.assertTrue;
 
 public class blogStepDef {
 
@@ -94,7 +96,7 @@ public class blogStepDef {
             js = response.jsonPath();
             ArrayList<String> emailFromComments = js.get("email");
 
-            Assert.assertTrue(body.contains("email"), "The email does not exist");
+          assertTrue(body.contains("email"), "The email does not exist");
 
             for (String validateEmail : emailFromComments) {
 

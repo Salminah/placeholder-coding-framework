@@ -1,0 +1,7 @@
+-------------------------------------------------------------------------------
+Test set: runner.UserBlogRunner
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 7.092 s <<< FAILURE! - in runner.UserBlogRunner
+Validate the comments for the post made by User.Verify if the user exist  Time elapsed: 0.181 s  <<< FAILURE!
+org.opentest4j.AssertionFailedError: Username does not exist ==> expected: <true> but was: <false>
+
